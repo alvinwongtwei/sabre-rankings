@@ -1,0 +1,66 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Singapore Women's Sabre Rankings</title>
+<style>
+:root{--bg:#fff;--fg:#1a1d21;--mu:#6b7280;--bd:#e5e7eb;--ac:#0b6e4f;--up:#15803d;--dn:#b91c1c;--hi:#ecfdf5;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171a;--fg:#e8eaed;--mu:#9aa0a6;--bd:#2c3136;--ac:#4ade80;--up:#4ade80;--dn:#f87171;--hi:#1d2a24}}
+:root[data-theme="dark"]{--bg:#14171a;--fg:#e8eaed;--mu:#9aa0a6;--bd:#2c3136;--ac:#4ade80;--up:#4ade80;--dn:#f87171;--hi:#1d2a24}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 2px}.mu{color:var(--mu);font-size:13px;margin:4px 0 14px}
+button{font:inherit;background:none;color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:6px 14px;margin-right:6px;cursor:pointer}
+button.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+.card{border:1px solid var(--bd);border-radius:12px;padding:12px;margin:12px 0}
+.wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:600;font-size:12px}
+tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(--dn)}.ax{font-size:11px;fill:var(--mu)}svg text{font-family:inherit}.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}.k div{border:1px solid var(--bd);border-radius:12px;padding:10px 12px}.k b{display:block;font-size:18px}.k span{color:var(--mu);font-size:12px;display:block}h2{font-size:15px;margin:0 0 8px}.d{opacity:.45;text-decoration:line-through}
+</style></head><body><main>
+<h1>Singapore women's sabre rankings</h1>
+<p class="mu"><span id="asof">Loading…</span> · tap a fencer to follow her across the chart and all three levels</p>
+<div id="tabs"></div><div id="sel"></div><div id="cat"><div id="kpi" class="k"></div><div class="card"><h2>Rank after each event</h2><div id="chart"></div></div><div class="card"><h2>Points: base vs earned (top 10)</h2><div id="bars"></div></div><div class="card"><h2>Club mix, top 10</h2><div id="club"></div></div></div>
+<div class="card"><div class="wrap"><table id="tb"></table></div></div>
+<p class="mu">Rank history is rebuilt from event results: best 4 scores plus base points, with base points held constant for the season (an assumption). Fencers with zero points are omitted. "Start" = base points only. Events counted per level, so the same event can affect several levels.</p>
+</main><script>
+let D={cadet:{ev:[],f:[]},junior:{ev:[],f:[]},senior:{ev:[],f:[]}};
+const C={cadet:"Cadet",junior:"Junior",senior:"Senior"},K=["#0b6e4f","#2563eb","#d97706","#9333ea","#dc2626","#0891b2","#65a30d","#db2777","#7c3aed","#475569","#ca8a04"];
+let cat="cadet",sel=null;
+const $=id=>document.getElementById(id),fm=d=>new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+const dl=n=>n>0?`<span class="up">▲${n}</span>`:n<0?`<span class="dn">▼${-n}</span>`:"–";
+function calc(c){const{ev,f}=D[c],S=[];for(let k=0;k<=ev.length;k++){const t=f.map(x=>x[4].slice(0,k).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0)+x[3]);S.push({t,r:t.map(v=>1+t.filter(u=>u>v).length)})}return S}
+function pick(id){sel=sel==id?null:id;render()}
+function tabs(){$("tabs").innerHTML=Object.keys(C).map(c=>`<button class="${c==cat?"on":""}" onclick="cat='${c}';render()">${C[c]}</button>`).join("")+`<button class="${cat=="all"?"on":""}" onclick="cat='all';render()">All levels</button>`}
+function render(){
+tabs();$("cat").style.display=cat=="all"?"none":"";if(cat=="all")return all();
+const{ev,f}=D[cat],S=calc(cat),n=ev.length,L=S[n];
+if(n<1){["kpi","bars","club","tb"].forEach(i=>$(i).innerHTML="");$("chart").textContent="No events recorded yet this season.";return}
+let p="";
+if(sel){const nm=Object.values(D).flatMap(d=>d.f).find(x=>x[0]==sel)[1];
+const info=Object.keys(C).map(c=>{const T=calc(c),m=D[c].f.findIndex(x=>x[0]==sel),l=T[T.length-1];return m<0?null:`${C[c]} #${l.r[m]} (${l.t[m].toLocaleString()} pts)`}).filter(Boolean).join(" · ");
+const q=f.findIndex(x=>x[0]==sel);let dt="";
+if(q>=0){const x=f[q],pt=x[4],tc=pt.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).slice(0,4).map(a=>a[1]),lo=pt.length>=4?[...pt].sort((a,b)=>b-a)[3]:0,u=L.t.filter(v=>v>L.t[q]),d=L.t.filter(v=>v<L.t[q]);
+dt=`<p class="mu">#${L.r[q]} here · ${L.t[q].toLocaleString()} pts · ${u.length?Math.min(...u)-L.t[q]+" behind the next rank up":"leading"}${d.length?" · "+(L.t[q]-Math.max(...d))+" ahead of the next down":""} · a new result only adds points if it beats ${lo}</p><div class="wrap"><table><tr><th>Event<th>Date<th>Points<th></tr>`+ev.map((e,i)=>`<tr style="cursor:default"><td>${e[1]}<td>${fm(e[0])}<td class="${tc.includes(i)?"":"d"}">${pt[i]||"–"}<td>${tc.includes(i)&&pt[i]?"counts":pt[i]?"dropped":""}`).join("")+`<tr style="cursor:default"><td>Base points<td><td>${x[3]}<td>counts</tr></table></div>`}
+else dt=`<p class="mu">Not ranked in this level.</p>`;
+p=`<div class="card"><b>${nm}</b> — ${info} <button onclick="pick(sel)" style="margin-left:8px">Clear</button>${dt}</div>`}
+$("sel").innerHTML=p;
+const show=f.map((x,i)=>i).filter(i=>L.r[i]<=10||f[i][0]==sel);
+const mr=Math.max(...show.flatMap(i=>S.map(s=>s.r[i])));
+const W=700,H=330,ml=34,mg=125,mt=16,mb=34,X=i=>ml+i*(W-ml-mg)/n,Y=r=>mt+(mr>1?(r-1)*(H-mt-mb)/(mr-1):0);
+let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Rank after each event">`;
+for(let i=0;i<=n;i++)s+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle" class="ax">${i?fm(ev[i-1][0]):"Start"}</text>`;
+for(let r=1;r<=mr;r+=mr>12?2:1)s+=`<text x="${ml-10}" y="${Y(r)+4}" text-anchor="end" class="ax">${r}</text>`;
+show.forEach((i,j)=>{const hot=f[i][0]==sel,dim=sel&&!hot,col=K[j%K.length],pt=S.map((q,k)=>[X(k),Y(q.r[i])]);
+s+=`<g opacity="${dim?0.15:1}" style="cursor:pointer" onclick="pick(${f[i][0]})"><polyline fill="none" stroke="${col}" stroke-width="${hot?4:2}" points="${pt.map(a=>a.join(",")).join(" ")}"/>`+pt.map((a,k)=>`<circle cx="${a[0]}" cy="${a[1]}" r="${hot?5:3}" fill="${col}"><title>${f[i][1]} · rank ${S[k].r[i]} · ${S[k].t[i]} pts${k?" after "+ev[k-1][1]:" (base only)"}</title></circle>`).join("")+`<text x="${X(n)+8}" y="${pt[n][1]+4}" font-size="11" fill="${col}">${f[i][1]}</text></g>`});
+$("chart").innerHTML=s+"</svg>";
+const od=f.map((x,i)=>i).sort((a,b)=>L.r[a]-L.r[b]||L.t[b]-L.t[a]),tp=od.slice(0,10),mv=f.map((x,i)=>i).sort((a,b)=>(S[n-1].r[b]-L.r[b])-(S[n-1].r[a]-L.r[a]))[0],bs=tp.reduce((a,i)=>a+f[i][3],0),tt=tp.reduce((a,i)=>a+L.t[i],0);
+$("kpi").innerHTML=`<div><span>Leader</span><b>${f[od[0]][1]}</b><span>${L.t[od[0]].toLocaleString()} pts</span></div><div><span>Lead over #2</span><b>${(L.t[od[0]]-L.t[od[1]]).toLocaleString()}</b><span>points</span></div><div><span>Biggest climb, last event</span><b>${f[mv][1]}</b><span>▲${S[n-1].r[mv]-L.r[mv]} · ${ev[n-1][1]}</span></div><div><span>Top 10 points from base</span><b>${Math.round(100*bs/tt)}%</b><span>not from this season's events</span></div>`;
+const mx=Math.max(...tp.map(i=>L.t[i]));let b=`<svg viewBox="0 0 700 ${tp.length*26+6}" width="100%">`;
+tp.forEach((i,j)=>{const y=j*26+4,w=v=>v/mx*480,b0=f[i][3],ea=L.t[i]-b0;b+=`<text x="0" y="${y+14}" font-size="12" fill="currentColor">${L.r[i]}. ${f[i][1]}</text><rect x="150" y="${y}" width="${w(b0)}" height="18" fill="#94a3b8"/><rect x="${150+w(b0)}" y="${y}" width="${w(ea)}" height="18" fill="var(--ac)"/><text x="${156+w(L.t[i])}" y="${y+14}" font-size="11" class="ax">${L.t[i].toLocaleString()}</text>`});
+$("bars").innerHTML=b+`</svg><p class="mu">Grey = base points · green = best 4 event scores</p>`;
+const cm={};tp.forEach(i=>{const k=f[i][2]||"Unlisted";cm[k]=(cm[k]||0)+1});
+$("club").innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<button style="cursor:default">${k} · ${v}</button>`).join("")+`<p class="mu">Club is blank for many fencers on the federation site, so "Unlisted" is a data gap, not a club.</p>`;
+const o=f.map((x,i)=>i).sort((a,b)=>L.r[a]-L.r[b]||L.t[b]-L.t[a]);
+$("tb").innerHTML=`<tr><th>#<th>Fencer<th>Club<th>Points<th>Base %<th>Δ last event<th>Δ since 1st event<th>Gap to above</tr>`+o.map(i=>{const x=f[i],r=L.r[i];return`<tr class="${x[0]==sel?"on":""}" onclick="pick(${x[0]})"><td>${r}<td>${x[1]}<td>${x[2]}<td>${L.t[i].toLocaleString()}<td>${L.t[i]?Math.round(100*x[3]/L.t[i]):0}%<td>${dl(S[n-1].r[i]-r)}<td>${dl(S[1].r[i]-r)}<td>${(a=>a.length?Math.min(...a)-L.t[i]:"–")(L.t.filter(v=>v>L.t[i]))}`}).join("")}
+function all(){$("sel").innerHTML=`<p class="mu">Rank · points in each level. "–" means not ranked in that level.</p>`;const m={};Object.keys(C).forEach(c=>{const T=calc(c),l=T[T.length-1];D[c].f.forEach((x,i)=>{(m[x[0]]=m[x[0]]||{n:x[1],c:x[2],r:{}}).r[c]=[l.r[i],l.t[i]]})});
+const best=x=>Math.min(...Object.values(x.r).map(v=>v[0]));
+$("tb").innerHTML=`<tr><th>Fencer<th>Club<th>Cadet<th>Junior<th>Senior</tr>`+Object.values(m).sort((a,b)=>best(a)-best(b)).map(x=>`<tr style="cursor:default"><td>${x.n}<td>${x.c}`+Object.keys(C).map(c=>`<td>${x.r[c]?"#"+x.r[c][0]+" · "+x.r[c][1].toLocaleString():"–"}`).join("")).join("")}
+fetch("data.json?"+Date.now()).then(r=>r.json()).then(j=>{D=j;$("asof").textContent="Season "+j.season+"–"+(j.season+1)+" · data as at "+j.generated+" SGT";render()}).catch(()=>{$("asof").textContent="Could not load data.json"});
+</script></body></html>
