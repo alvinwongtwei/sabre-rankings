@@ -16,7 +16,7 @@ tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(-
 </style></head><body><main>
 <h1>Singapore women's sabre rankings</h1>
 <p class="mu"><span id="asof">Loading…</span> · tap a fencer to follow her across the chart and all three levels</p>
-<div id="tabs"></div><div id="sel"></div><div id="cat"><div id="kpi" class="k"></div><div class="card"><h2>Rank after each event</h2><div id="chart"></div></div><div class="card"><h2>Points: base vs earned (top 10)</h2><div id="bars"></div></div><div class="card"><h2>Club mix, top 10</h2><div id="club"></div></div></div>
+<div id="tabs"></div><div id="sel"></div><div id="cat"><div id="kpi" class="k"></div><div class="card"><h2>Rank after each event</h2><div id="chart" class="wrap"></div></div><div class="card"><h2>Points: base vs earned (top 10)</h2><div id="bars"></div></div><div class="card"><h2>Club mix, top 10</h2><div id="club"></div></div></div>
 <div class="card"><div class="wrap"><table id="tb"></table></div></div>
 <p class="mu">Rank history is rebuilt from event results: best 4 scores plus base points, with base points held constant for the season (an assumption). Fencers with zero points are omitted. "Start" = base points only. Events counted per level, so the same event can affect several levels.</p>
 </main><script>
@@ -43,12 +43,12 @@ p=`<div class="card"><b>${nm}</b> — ${info} <button onclick="pick(sel)" style=
 $("sel").innerHTML=p;
 const show=f.map((x,i)=>i).filter(i=>L.r[i]<=10||f[i][0]==sel);
 const mr=Math.max(...show.flatMap(i=>S.map(s=>s.r[i])));
-const W=700,H=330,ml=34,mg=125,mt=16,mb=34,X=i=>ml+i*(W-ml-mg)/n,Y=r=>mt+(mr>1?(r-1)*(H-mt-mb)/(mr-1):0);
-let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Rank after each event">`;
-for(let i=0;i<=n;i++)s+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle" class="ax">${i?fm(ev[i-1][0]):"Start"}</text>`;
+const W=760,H=380,ml=34,mg=135,mt=16,mb=84,X=i=>ml+i*(W-ml-mg)/n,Y=r=>mt+(mr>1?(r-1)*(H-mt-mb)/(mr-1):0);
+let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:640px" role="img" aria-label="Rank after each event">`;
+for(let i=0;i<=n;i++){const y=H-mb+18;s+=`<line x1="${X(i)}" y1="${mt}" x2="${X(i)}" y2="${H-mb}" stroke="var(--bd)"/><text x="${X(i)}" y="${y}" transform="rotate(40 ${X(i)} ${y})" class="ax"><title>${i?fm(ev[i-1][0]):"Base points only"}</title>${i?ev[i-1][1]:"Start"}</text>`}
 for(let r=1;r<=mr;r+=mr>12?2:1)s+=`<text x="${ml-10}" y="${Y(r)+4}" text-anchor="end" class="ax">${r}</text>`;
 show.forEach((i,j)=>{const hot=f[i][0]==sel,dim=sel&&!hot,col=K[j%K.length],pt=S.map((q,k)=>[X(k),Y(q.r[i])]);
-s+=`<g opacity="${dim?0.15:1}" style="cursor:pointer" onclick="pick(${f[i][0]})"><polyline fill="none" stroke="${col}" stroke-width="${hot?4:2}" points="${pt.map(a=>a.join(",")).join(" ")}"/>`+pt.map((a,k)=>`<circle cx="${a[0]}" cy="${a[1]}" r="${hot?5:3}" fill="${col}"><title>${f[i][1]} · rank ${S[k].r[i]} · ${S[k].t[i]} pts${k?" after "+ev[k-1][1]:" (base only)"}</title></circle>`).join("")+`<text x="${X(n)+8}" y="${pt[n][1]+4}" font-size="11" fill="${col}">${f[i][1]}</text></g>`});
+s+=`<g opacity="${dim?0.15:1}" style="cursor:pointer" onclick="pick(${f[i][0]})"><polyline fill="none" stroke="${col}" stroke-width="${hot?4:2}" points="${pt.map(a=>a.join(",")).join(" ")}"/>`+pt.map((a,k)=>`<circle cx="${a[0]}" cy="${a[1]}" r="${hot?5:3}" fill="${col}"><title>${f[i][1]} · rank ${S[k].r[i]} · ${S[k].t[i]} pts${k?" after "+ev[k-1][1]+" ("+fm(ev[k-1][0])+")":" (base only)"}</title></circle>`).join("")+`<text x="${X(n)+8}" y="${pt[n][1]+4}" font-size="11" fill="${col}">${f[i][1]}</text></g>`});
 $("chart").innerHTML=s+"</svg>";
 const od=f.map((x,i)=>i).sort((a,b)=>L.r[a]-L.r[b]||L.t[b]-L.t[a]),tp=od.slice(0,10),mv=f.map((x,i)=>i).sort((a,b)=>(S[n-1].r[b]-L.r[b])-(S[n-1].r[a]-L.r[a]))[0],bs=tp.reduce((a,i)=>a+f[i][3],0),tt=tp.reduce((a,i)=>a+L.t[i],0);
 $("kpi").innerHTML=`<div><span>Leader</span><b>${f[od[0]][1]}</b><span>${L.t[od[0]].toLocaleString()} pts</span></div><div><span>Lead over #2</span><b>${(L.t[od[0]]-L.t[od[1]]).toLocaleString()}</b><span>points</span></div><div><span>Biggest climb, last event</span><b>${f[mv][1]}</b><span>▲${S[n-1].r[mv]-L.r[mv]} · ${ev[n-1][1]}</span></div><div><span>Top 10 points from base</span><b>${Math.round(100*bs/tt)}%</b><span>not from this season's events</span></div>`;
