@@ -6,61 +6,90 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:860px;margin:0 auto;padding:20px 16px 40px}
-h1{font-size:22px;margin:0 0 2px}.mu{color:var(--mu);font-size:13px;margin:4px 0 14px}
-button{font:inherit;background:none;color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:6px 14px;margin-right:6px;cursor:pointer}
+h1{font-size:22px;margin:0 0 2px}h2{font-size:15px;margin:0 0 8px}.mu{color:var(--mu);font-size:13px;margin:4px 0 10px}
+button{font:inherit;background:none;color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:6px 14px;margin:0 6px 4px 0;cursor:pointer}
 button.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
-.card{border:1px solid var(--bd);border-radius:12px;padding:12px;margin:12px 0}
+input[type=search]{font:inherit;width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);margin-bottom:8px}
+.card{border:1px solid var(--bd);border-radius:12px;padding:12px;margin:12px 0}.hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}.hd h2{margin:0}
+.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}.k div{border:1px solid var(--bd);border-radius:12px;padding:10px 12px}.k b{display:block;font-size:18px}.k span{color:var(--mu);font-size:12px;display:block}
 .wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:600;font-size:12px}
-tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(--dn)}.ax{font-size:11px;fill:var(--mu)}svg text{font-family:inherit}.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}.k div{border:1px solid var(--bd);border-radius:12px;padding:10px 12px}.k b{display:block;font-size:18px}.k span{color:var(--mu);font-size:12px;display:block}h2{font-size:15px;margin:0 0 8px}.d{opacity:.45;text-decoration:line-through}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:600;font-size:12px}th[onclick]{cursor:pointer}
+tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(--dn)}.ax{font-size:11px;fill:var(--mu)}svg text{font-family:inherit}.d{opacity:.45;text-decoration:line-through}
+.bd{font-size:11px;color:var(--mu);border:1px solid var(--bd);border-radius:6px;padding:0 5px}
 </style></head><body><main>
 <h1>Singapore women's sabre rankings</h1>
 <p class="mu"><span id="asof">Loading…</span> · tap a fencer to follow her across the chart and all three levels</p>
-<div id="tabs"></div><div id="sel"></div><div id="cat"><div id="kpi" class="k"></div><div class="card"><h2>Rank after each event</h2><div id="chart" class="wrap"></div></div><div class="card"><h2>Points: base vs earned (top 10)</h2><div id="bars"></div></div><div class="card"><h2>Club mix, top 10</h2><div id="club"></div></div></div>
-<div class="card"><div class="wrap"><table id="tb"></table></div></div>
-<p class="mu">Rank history is rebuilt from event results: best 4 scores plus base points, with base points held constant for the season (an assumption). Fencers with zero points are omitted. "Start" = base points only. Events counted per level, so the same event can affect several levels.</p>
+<div id="tabs"></div><div id="sel"></div>
+<div id="cat"><div id="kpi" class="k"></div>
+<div class="card"><input id="q" type="search" placeholder="Search fencer or club" oninput="tbl()"><div class="wrap"><table id="tb"></table></div></div>
+<div class="card"><div class="hd"><h2>Rank history</h2><div><button id="m1" onclick="mode='event';render()">By event (estimated)</button><button id="m2" onclick="mode='day';render()">By day (actual)</button></div></div>
+<label class="mu"><input type="checkbox" id="hi" onchange="hideIn=this.checked;chart()"> Hide fencers with no events this season</label>
+<div id="chart" class="wrap"></div><p class="mu" id="cn"></p></div>
+<div class="card"><h2>Points: base vs earned (top 10)</h2><div id="bars"></div></div>
+<div class="card"><h2>Club mix, top 10</h2><div id="club"></div></div></div>
+<div class="card" id="allc" style="display:none"><div class="wrap"><table id="ta"></table></div></div>
+<p class="mu">Total = best 4 event scores + base points. Base points shrink over time, so "By event" applies today's base to earlier dates and is only an estimate. "By day" uses real daily snapshots and is accurate from the first day recorded. Dashed lines = no events yet this season (ranking is base points only).</p>
 </main><script>
-let D={cadet:{ev:[],f:[]},junior:{ev:[],f:[]},senior:{ev:[],f:[]}};
-const C={cadet:"Cadet",junior:"Junior",senior:"Senior"},K=["#0b6e4f","#2563eb","#d97706","#9333ea","#dc2626","#0891b2","#65a30d","#db2777","#7c3aed","#475569","#ca8a04"];
-let cat="cadet",sel=null;
-const $=id=>document.getElementById(id),fm=d=>new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-const dl=n=>n>0?`<span class="up">▲${n}</span>`:n<0?`<span class="dn">▼${-n}</span>`:"–";
+let D={cadet:{ev:[],f:[]},junior:{ev:[],f:[]},senior:{ev:[],f:[]}},H=[],cat="cadet",sel=null,mode="event",hideIn=false,sk=0,sd=1,G;
+const C={cadet:"Cadet",junior:"Junior",senior:"Senior"},K=["#0b6e4f","#2563eb","#d97706","#9333ea","#dc2626","#0891b2","#65a30d","#db2777","#64748b","#92400e","#ca8a04"];
+const $=id=>document.getElementById(id),fm=d=>new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short"}),nm=x=>x[5]||x[1],idle=x=>!x[4].some(v=>v>0);
 function calc(c){const{ev,f}=D[c],S=[];for(let k=0;k<=ev.length;k++){const t=f.map(x=>x[4].slice(0,k).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0)+x[3]);S.push({t,r:t.map(v=>1+t.filter(u=>u>v).length)})}return S}
-function pick(id){sel=sel==id?null:id;render()}
-function tabs(){$("tabs").innerHTML=Object.keys(C).map(c=>`<button class="${c==cat?"on":""}" onclick="cat='${c}';render()">${C[c]}</button>`).join("")+`<button class="${cat=="all"?"on":""}" onclick="cat='all';render()">All levels</button>`}
+function go(){history.replaceState(null,"","#"+cat+(sel&&cat!="all"?"-"+sel:""))}
+function pick(id){sel=sel==id?null:id;go();render()}
+function hv(id){const a=sel||id;document.querySelectorAll("#chart g[data-id]").forEach(g=>g.style.opacity=!a||g.dataset.id==a?1:0.15)}
+function srt(k){sd=sk==k?-sd:1;sk=k;tbl()}
+function tabs(){$("tabs").innerHTML=Object.keys(C).map(c=>`<button class="${c==cat?"on":""}" onclick="cat='${c}';go();render()">${C[c]}</button>`).join("")+`<button class="${cat=="all"?"on":""}" onclick="cat='all';go();render()">All levels</button>`}
 function render(){
-tabs();$("cat").style.display=cat=="all"?"none":"";if(cat=="all")return all();
-const{ev,f}=D[cat],S=calc(cat),n=ev.length,L=S[n];
-if(n<1){["kpi","bars","club","tb"].forEach(i=>$(i).innerHTML="");$("chart").textContent="No events recorded yet this season.";return}
-let p="";
-if(sel){const nm=Object.values(D).flatMap(d=>d.f).find(x=>x[0]==sel)[1];
+tabs();$("cat").style.display=cat=="all"?"none":"";$("allc").style.display=cat=="all"?"":"none";
+if(cat=="all")return all();
+const{ev,f}=D[cat],S=calc(cat),n=ev.length;G={ev,f,S,n,L:S[n]};selp();
+if(f.length<2){["kpi","tb","chart","bars","club"].forEach(i=>$(i).innerHTML="");return}
+kpi();tbl();chart();bars()}
+function selp(){let p="";const a=Object.values(D).flatMap(d=>d.f||[]).find(x=>x&&x[0]==sel);
+if(sel&&a){const{ev,f,L}=G,q=f.findIndex(x=>x[0]==sel);
 const info=Object.keys(C).map(c=>{const T=calc(c),m=D[c].f.findIndex(x=>x[0]==sel),l=T[T.length-1];return m<0?null:`${C[c]} #${l.r[m]} (${l.t[m].toLocaleString()} pts)`}).filter(Boolean).join(" · ");
-const q=f.findIndex(x=>x[0]==sel);let dt="";
+let dt="";
 if(q>=0){const x=f[q],pt=x[4],tc=pt.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).slice(0,4).map(a=>a[1]),lo=pt.length>=4?[...pt].sort((a,b)=>b-a)[3]:0,u=L.t.filter(v=>v>L.t[q]),d=L.t.filter(v=>v<L.t[q]);
 dt=`<p class="mu">#${L.r[q]} here · ${L.t[q].toLocaleString()} pts · ${u.length?Math.min(...u)-L.t[q]+" behind the next rank up":"leading"}${d.length?" · "+(L.t[q]-Math.max(...d))+" ahead of the next down":""} · a new result only adds points if it beats ${lo}</p><div class="wrap"><table><tr><th>Event<th>Date<th>Points<th></tr>`+ev.map((e,i)=>`<tr style="cursor:default"><td>${e[1]}<td>${fm(e[0])}<td class="${tc.includes(i)?"":"d"}">${pt[i]||"–"}<td>${tc.includes(i)&&pt[i]?"counts":pt[i]?"dropped":""}`).join("")+`<tr style="cursor:default"><td>Base points<td><td>${x[3]}<td>counts</tr></table></div>`}
 else dt=`<p class="mu">Not ranked in this level.</p>`;
-p=`<div class="card"><b>${nm}</b> — ${info} <button onclick="pick(sel)" style="margin-left:8px">Clear</button>${dt}</div>`}
-$("sel").innerHTML=p;
-const show=f.map((x,i)=>i).filter(i=>L.r[i]<=10||f[i][0]==sel);
-const mr=Math.max(...show.flatMap(i=>S.map(s=>s.r[i])));
-const W=760,H=380,ml=34,mg=135,mt=16,mb=84,X=i=>ml+i*(W-ml-mg)/n,Y=r=>mt+(mr>1?(r-1)*(H-mt-mb)/(mr-1):0);
-let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:640px" role="img" aria-label="Rank after each event">`;
-for(let i=0;i<=n;i++){const y=H-mb+18;s+=`<line x1="${X(i)}" y1="${mt}" x2="${X(i)}" y2="${H-mb}" stroke="var(--bd)"/><text x="${X(i)}" y="${y}" transform="rotate(40 ${X(i)} ${y})" class="ax"><title>${i?fm(ev[i-1][0]):"Base points only"}</title>${i?ev[i-1][1]:"Start"}</text>`}
-for(let r=1;r<=mr;r+=mr>12?2:1)s+=`<text x="${ml-10}" y="${Y(r)+4}" text-anchor="end" class="ax">${r}</text>`;
-show.forEach((i,j)=>{const hot=f[i][0]==sel,dim=sel&&!hot,col=K[j%K.length],pt=S.map((q,k)=>[X(k),Y(q.r[i])]);
-s+=`<g opacity="${dim?0.15:1}" style="cursor:pointer" onclick="pick(${f[i][0]})"><polyline fill="none" stroke="${col}" stroke-width="${hot?4:2}" points="${pt.map(a=>a.join(",")).join(" ")}"/>`+pt.map((a,k)=>`<circle cx="${a[0]}" cy="${a[1]}" r="${hot?5:3}" fill="${col}"><title>${f[i][1]} · rank ${S[k].r[i]} · ${S[k].t[i]} pts${k?" after "+ev[k-1][1]+" ("+fm(ev[k-1][0])+")":" (base only)"}</title></circle>`).join("")+`<text x="${X(n)+8}" y="${pt[n][1]+4}" font-size="11" fill="${col}">${f[i][1]}</text></g>`});
-$("chart").innerHTML=s+"</svg>";
-const od=f.map((x,i)=>i).sort((a,b)=>L.r[a]-L.r[b]||L.t[b]-L.t[a]),tp=od.slice(0,10),mv=f.map((x,i)=>i).sort((a,b)=>(S[n-1].r[b]-L.r[b])-(S[n-1].r[a]-L.r[a]))[0],bs=tp.reduce((a,i)=>a+f[i][3],0),tt=tp.reduce((a,i)=>a+L.t[i],0);
-$("kpi").innerHTML=`<div><span>Leader</span><b>${f[od[0]][1]}</b><span>${L.t[od[0]].toLocaleString()} pts</span></div><div><span>Lead over #2</span><b>${(L.t[od[0]]-L.t[od[1]]).toLocaleString()}</b><span>points</span></div><div><span>Biggest climb, last event</span><b>${f[mv][1]}</b><span>▲${S[n-1].r[mv]-L.r[mv]} · ${ev[n-1][1]}</span></div><div><span>Top 10 points from base</span><b>${Math.round(100*bs/tt)}%</b><span>not from this season's events</span></div>`;
-const mx=Math.max(...tp.map(i=>L.t[i]));let b=`<svg viewBox="0 0 700 ${tp.length*26+6}" width="100%">`;
-tp.forEach((i,j)=>{const y=j*26+4,w=v=>v/mx*480,b0=f[i][3],ea=L.t[i]-b0;b+=`<text x="0" y="${y+14}" font-size="12" fill="currentColor">${L.r[i]}. ${f[i][1]}</text><rect x="150" y="${y}" width="${w(b0)}" height="18" fill="#94a3b8"/><rect x="${150+w(b0)}" y="${y}" width="${w(ea)}" height="18" fill="var(--ac)"/><text x="${156+w(L.t[i])}" y="${y+14}" font-size="11" class="ax">${L.t[i].toLocaleString()}</text>`});
+p=`<div class="card"><b>${nm(a)}</b> — ${info} <button onclick="pick(sel)" style="margin-left:8px">Clear</button><button onclick="navigator.clipboard.writeText(location.href)">Copy link</button>${dt}</div>`}
+$("sel").innerHTML=p}
+function kpi(){const{f,L}=G,od=f.map((x,i)=>i).sort((a,b)=>L.r[a]-L.r[b]||L.t[b]-L.t[a]),tp=od.slice(0,10),bs=tp.reduce((a,i)=>a+f[i][3],0),tt=tp.reduce((a,i)=>a+L.t[i],0);G.od=od;G.tp=tp;
+$("kpi").innerHTML=`<div><span>Leader</span><b>${nm(f[od[0]])}</b><span>${L.t[od[0]].toLocaleString()} pts${idle(f[od[0]])?" · no events this season":""}</span></div><div><span>Lead over #2</span><b>${(L.t[od[0]]-L.t[od[1]]).toLocaleString()}</b><span>points</span></div><div><span>Top 10 points from base</span><b>${Math.round(100*bs/tt)}%</b><span>not from this season's events</span></div>`}
+function tbl(){const{f,S,L,od}=G,q=$("q").value.toLowerCase(),gap=i=>{const a=L.t.filter(v=>v>L.t[i]);return a.length?Math.min(...a)-L.t[i]:0};
+const spark=i=>{const r=S.map(s=>s.r[i]);if(r.length<2)return"";const a=Math.max(...r),b=Math.min(...r),w=64,h=18;return`<svg width="${w}" height="${h}"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="${r.map((v,k)=>(k*w/(r.length-1)).toFixed(1)+","+(a==b?h/2:2+(v-b)*(h-4)/(a-b)).toFixed(1)).join(" ")}"/></svg>`};
+const cols=[["#",i=>L.r[i]],["Fencer",i=>nm(f[i]).toLowerCase()],["Club",i=>f[i][2]],["Points",i=>L.t[i]],["Base %",i=>L.t[i]?f[i][3]/L.t[i]:0],["Trend",null],["Gap to above",gap]];
+const rows=od.filter(i=>!q||(nm(f[i])+" "+f[i][2]).toLowerCase().includes(q));
+const key=cols[sk][1];rows.sort((a,b)=>{const x=key(a),y=key(b);return(x>y?1:x<y?-1:0)*sd||L.r[a]-L.r[b]});
+$("tb").innerHTML="<tr>"+cols.map((c,j)=>c[1]?`<th onclick="srt(${j})">${c[0]}${sk==j?(sd>0?" ▲":" ▼"):""}`:`<th>${c[0]}`).join("")+"</tr>"+rows.map(i=>{const x=f[i];return`<tr class="${x[0]==sel?"on":""}" onmouseenter="hv(${x[0]})" onmouseleave="hv(null)" onclick="pick(${x[0]})"><td>${L.r[i]}<td>${nm(x)}${idle(x)?' <span class="bd">no events</span>':""}<td>${x[2]}<td>${L.t[i].toLocaleString()}<td>${L.t[i]?Math.round(100*x[3]/L.t[i]):0}%<td>${spark(i)}<td>${gap(i)||"–"}`}).join("")}
+function series(){const{ev,f,S}=G;
+if(mode=="event"){const R={},T={};f.forEach((x,i)=>{R[x[0]]=S.map(s=>s.r[i]);T[x[0]]=S.map(s=>s.t[i])});return{lab:["Start",...ev.map(e=>e[1])],tip:["Base points only",...ev.map(e=>fm(e[0]))],R,T,note:"Estimate: today's base points are applied to earlier dates, but base points shrink over time, so earlier ranks are approximate."}}
+const sn=H.filter(s=>s.s==D.season&&s[cat]),R={},T={};
+sn.forEach((s,k)=>{const t=s[cat];t.forEach(a=>{const g=1+t.filter(b=>b[2]>a[2]).length;(R[a[0]]=R[a[0]]||Array(sn.length).fill(null))[k]=g;(T[a[0]]=T[a[0]]||Array(sn.length).fill(null))[k]=a[2]})});
+return{lab:sn.map(s=>fm(s.d)),tip:sn.map(s=>s.d),R,T,note:sn.length?"Real daily snapshots since "+fm(sn[0].d)+".":""}}
+function chart(){const{f}=G,m=series(),N=m.lab.length;$("m1").className=mode=="event"?"on":"";$("m2").className=mode=="day"?"on":"";$("cn").textContent=m.note;
+if(N<2){$("chart").innerHTML=`<p class="mu">${mode=="day"?"Daily tracking has just started. The chart appears once two days are recorded.":"No events recorded yet this season."}</p>`;return}
+const fin=i=>(m.R[f[i][0]]||[])[N-1],show=f.map((x,i)=>i).filter(i=>{const r=fin(i);return((r&&r<=10)||f[i][0]==sel)&&!(hideIn&&idle(f[i])&&f[i][0]!=sel)});
+if(!show.length){$("chart").innerHTML="";return}
+const mx=Math.max(...show.flatMap(i=>(m.R[f[i][0]]||[]).filter(v=>v)));
+const W=760,H2=380,ml=34,mg=135,mt=16,mb=84,X=i=>ml+i*(W-ml-mg)/(N-1),Y=r=>mt+(mx>1?(r-1)*(H2-mt-mb)/(mx-1):0);
+let s=`<svg viewBox="0 0 ${W} ${H2}" width="100%" style="min-width:640px" role="img" aria-label="Rank history">`;
+for(let i=0;i<N;i++){const y=H2-mb+18;s+=`<line x1="${X(i)}" y1="${mt}" x2="${X(i)}" y2="${H2-mb}" stroke="var(--bd)"/><text x="${X(i)}" y="${y}" transform="rotate(40 ${X(i)} ${y})" class="ax"><title>${m.tip[i]}</title>${m.lab[i]}</text>`}
+for(let r=1;r<=mx;r+=mx>12?2:1)s+=`<text x="${ml-10}" y="${Y(r)+4}" text-anchor="end" class="ax">${r}</text>`;
+show.forEach((i,j)=>{const x=f[i],id=x[0],hot=id==sel,col=K[j%K.length],pt=m.R[id].map((r,k)=>r?[X(k),Y(r),k]:null).filter(Boolean),l=pt[pt.length-1];
+s+=`<g data-id="${id}" opacity="${sel&&!hot?0.15:1}" style="cursor:pointer" onclick="pick(${id})" onmouseenter="hv(${id})" onmouseleave="hv(null)"><polyline fill="none" stroke="${col}" stroke-width="${hot?4:2}"${idle(x)?' stroke-dasharray="6 4"':""} points="${pt.map(a=>a[0]+","+a[1]).join(" ")}"/>`+pt.map(a=>`<circle cx="${a[0]}" cy="${a[1]}" r="${hot?5:3}" fill="${col}"><title>${nm(x)} · rank ${m.R[id][a[2]]} · ${m.T[id][a[2]]} pts · ${m.tip[a[2]]}</title></circle>`).join("")+`<text x="${l[0]+8}" y="${l[1]+4}" font-size="11" fill="${col}"><title>${nm(x)}</title>${x[1]}${idle(x)?" ·":""}</text></g>`});
+$("chart").innerHTML=s+"</svg>"}
+function bars(){const{f,L,tp}=G,mx=Math.max(...tp.map(i=>L.t[i]));let b=`<svg viewBox="0 0 700 ${tp.length*26+6}" width="100%">`;
+tp.forEach((i,j)=>{const y=j*26+4,w=v=>v/mx*480,b0=f[i][3],ea=L.t[i]-b0;b+=`<text x="0" y="${y+14}" font-size="12" fill="currentColor"><title>${nm(f[i])}</title>${L.r[i]}. ${f[i][1]}</text><rect x="150" y="${y}" width="${w(b0)}" height="18" fill="#94a3b8"/><rect x="${150+w(b0)}" y="${y}" width="${w(ea)}" height="18" fill="var(--ac)"/><text x="${156+w(L.t[i])}" y="${y+14}" font-size="11" class="ax">${L.t[i].toLocaleString()}</text>`});
 $("bars").innerHTML=b+`</svg><p class="mu">Grey = base points · green = best 4 event scores</p>`;
 const cm={};tp.forEach(i=>{const k=f[i][2]||"Unlisted";cm[k]=(cm[k]||0)+1});
-$("club").innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<button style="cursor:default">${k} · ${v}</button>`).join("")+`<p class="mu">Club is blank for many fencers on the federation site, so "Unlisted" is a data gap, not a club.</p>`;
-const o=f.map((x,i)=>i).sort((a,b)=>L.r[a]-L.r[b]||L.t[b]-L.t[a]);
-$("tb").innerHTML=`<tr><th>#<th>Fencer<th>Club<th>Points<th>Base %<th>Δ last event<th>Δ since 1st event<th>Gap to above</tr>`+o.map(i=>{const x=f[i],r=L.r[i];return`<tr class="${x[0]==sel?"on":""}" onclick="pick(${x[0]})"><td>${r}<td>${x[1]}<td>${x[2]}<td>${L.t[i].toLocaleString()}<td>${L.t[i]?Math.round(100*x[3]/L.t[i]):0}%<td>${dl(S[n-1].r[i]-r)}<td>${dl(S[1].r[i]-r)}<td>${(a=>a.length?Math.min(...a)-L.t[i]:"–")(L.t.filter(v=>v>L.t[i]))}`}).join("")}
-function all(){$("sel").innerHTML=`<p class="mu">Rank · points in each level. "–" means not ranked in that level.</p>`;const m={};Object.keys(C).forEach(c=>{const T=calc(c),l=T[T.length-1];D[c].f.forEach((x,i)=>{(m[x[0]]=m[x[0]]||{n:x[1],c:x[2],r:{}}).r[c]=[l.r[i],l.t[i]]})});
+$("club").innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<button style="cursor:default">${k} · ${v}</button>`).join("")+`<p class="mu">Club is blank for many fencers on the federation site, so "Unlisted" is a data gap, not a club.</p>`}
+function all(){$("sel").innerHTML=`<p class="mu">Rank · points in each level. "–" means not ranked in that level.</p>`;const m={};Object.keys(C).forEach(c=>{const T=calc(c),l=T[T.length-1];D[c].f.forEach((x,i)=>{(m[x[0]]=m[x[0]]||{n:nm(x),c:x[2],r:{}}).r[c]=[l.r[i],l.t[i]]})});
 const best=x=>Math.min(...Object.values(x.r).map(v=>v[0]));
-$("tb").innerHTML=`<tr><th>Fencer<th>Club<th>Cadet<th>Junior<th>Senior</tr>`+Object.values(m).sort((a,b)=>best(a)-best(b)).map(x=>`<tr style="cursor:default"><td>${x.n}<td>${x.c}`+Object.keys(C).map(c=>`<td>${x.r[c]?"#"+x.r[c][0]+" · "+x.r[c][1].toLocaleString():"–"}`).join("")).join("")}
-fetch("data.json?"+Date.now()).then(r=>r.json()).then(j=>{D=j;$("asof").textContent="Season "+j.season+"–"+(j.season+1)+" · data as at "+j.generated+" SGT";render()}).catch(()=>{$("asof").textContent="Could not load data.json"});
+$("ta").innerHTML=`<tr><th>Fencer<th>Club<th>Cadet<th>Junior<th>Senior</tr>`+Object.values(m).sort((a,b)=>best(a)-best(b)).map(x=>`<tr style="cursor:default"><td>${x.n}<td>${x.c}`+Object.keys(C).map(c=>`<td>${x.r[c]?"#"+x.r[c][0]+" · "+x.r[c][1].toLocaleString():"–"}`).join("")).join("")}
+const J=u=>fetch(u+"?"+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null);
+Promise.all([J("data.json"),J("history.json")]).then(([j,h])=>{if(!j)throw 0;D=j;H=(h&&h.snaps)||[];
+const m=location.hash.slice(1).split("-");if(C[m[0]]||m[0]=="all")cat=m[0];if(+m[1])sel=+m[1];
+if(H.filter(s=>s.s==D.season).length>1)mode="day";
+$("asof").textContent="Season "+j.season+"–"+(j.season+1)+" · data as at "+j.generated+" SGT";render()}).catch(()=>{$("asof").textContent="Could not load data.json"});
 </script></body></html>
