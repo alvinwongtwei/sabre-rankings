@@ -27,21 +27,19 @@ tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(-
 <div id="chart" class="wrap"></div><p class="mu" id="cn"></p></div>
 <div class="card"><h2>Points: base vs earned (top 10)</h2><div id="bars"></div></div>
 <div class="card"><h2>Club mix, top 10</h2><div id="club"></div></div></div>
-<div class="card" id="allc" style="display:none"><div class="wrap"><table id="ta"></table></div></div>
 <p class="mu">Total = best 4 event scores + base points. Base points shrink over time, so "By event" applies today's base to earlier dates and is only an estimate. "By day" uses real daily snapshots and is accurate from the first day recorded. Dashed lines = no events yet this season (ranking is base points only).</p>
 </main><script>
 let D={cadet:{ev:[],f:[]},junior:{ev:[],f:[]},senior:{ev:[],f:[]}},H=[],cat="cadet",sel=null,mode="event",hideIn=false,sk=0,sd=1,G;
 const C={cadet:"Cadet",junior:"Junior",senior:"Senior"},K=["#0b6e4f","#2563eb","#d97706","#9333ea","#dc2626","#0891b2","#65a30d","#db2777","#64748b","#92400e","#ca8a04"];
 const $=id=>document.getElementById(id),fm=d=>new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short"}),nm=x=>x[5]||x[1],idle=x=>!x[4].some(v=>v>0);
 function calc(c){const{ev,f}=D[c],S=[];for(let k=0;k<=ev.length;k++){const t=f.map(x=>x[4].slice(0,k).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0)+x[3]);S.push({t,r:t.map(v=>1+t.filter(u=>u>v).length)})}return S}
-function go(){history.replaceState(null,"","#"+cat+(sel&&cat!="all"?"-"+sel:""))}
+function go(){history.replaceState(null,"","#"+cat+(sel?"-"+sel:""))}
 function pick(id){sel=sel==id?null:id;go();render()}
 function hv(id){const a=sel||id;document.querySelectorAll("#chart g[data-id]").forEach(g=>g.style.opacity=!a||g.dataset.id==a?1:0.15)}
 function srt(k){sd=sk==k?-sd:1;sk=k;tbl()}
-function tabs(){$("tabs").innerHTML=Object.keys(C).map(c=>`<button class="${c==cat?"on":""}" onclick="cat='${c}';go();render()">${C[c]}</button>`).join("")+`<button class="${cat=="all"?"on":""}" onclick="cat='all';go();render()">All levels</button>`}
+function tabs(){$("tabs").innerHTML=Object.keys(C).map(c=>`<button class="${c==cat?"on":""}" onclick="cat='${c}';go();render()">${C[c]}</button>`).join("")}
 function render(){
-tabs();$("cat").style.display=cat=="all"?"none":"";$("allc").style.display=cat=="all"?"":"none";
-if(cat=="all")return all();
+tabs();
 const{ev,f}=D[cat],S=calc(cat),n=ev.length;G={ev,f,S,n,L:S[n]};selp();
 if(f.length<2){["kpi","tb","chart","bars","club"].forEach(i=>$(i).innerHTML="");return}
 kpi();tbl();chart();bars()}
@@ -84,12 +82,9 @@ tp.forEach((i,j)=>{const y=j*26+4,w=v=>v/mx*480,b0=f[i][3],ea=L.t[i]-b0;b+=`<tex
 $("bars").innerHTML=b+`</svg><p class="mu">Grey = base points · green = best 4 event scores</p>`;
 const cm={};tp.forEach(i=>{const k=f[i][2]||"Unlisted";cm[k]=(cm[k]||0)+1});
 $("club").innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<button style="cursor:default">${k} · ${v}</button>`).join("")+`<p class="mu">Club is blank for many fencers on the federation site, so "Unlisted" is a data gap, not a club.</p>`}
-function all(){$("sel").innerHTML=`<p class="mu">Rank · points in each level. "–" means not ranked in that level.</p>`;const m={};Object.keys(C).forEach(c=>{const T=calc(c),l=T[T.length-1];D[c].f.forEach((x,i)=>{(m[x[0]]=m[x[0]]||{n:nm(x),c:x[2],r:{}}).r[c]=[l.r[i],l.t[i]]})});
-const best=x=>Math.min(...Object.values(x.r).map(v=>v[0]));
-$("ta").innerHTML=`<tr><th>Fencer<th>Club<th>Cadet<th>Junior<th>Senior</tr>`+Object.values(m).sort((a,b)=>best(a)-best(b)).map(x=>`<tr style="cursor:default"><td>${x.n}<td>${x.c}`+Object.keys(C).map(c=>`<td>${x.r[c]?"#"+x.r[c][0]+" · "+x.r[c][1].toLocaleString():"–"}`).join("")).join("")}
 const J=u=>fetch(u+"?"+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null);
 Promise.all([J("data.json"),J("history.json")]).then(([j,h])=>{if(!j)throw 0;D=j;H=(h&&h.snaps)||[];
-const m=location.hash.slice(1).split("-");if(C[m[0]]||m[0]=="all")cat=m[0];if(+m[1])sel=+m[1];
+const m=location.hash.slice(1).split("-");if(C[m[0]])cat=m[0];if(+m[1])sel=+m[1];
 if(H.filter(s=>s.s==D.season).length>1)mode="day";
 $("asof").textContent="Season "+j.season+"–"+(j.season+1)+" · data as at "+j.generated+" SGT";render()}).catch(()=>{$("asof").textContent="Could not load data.json"});
 </script></body></html>
