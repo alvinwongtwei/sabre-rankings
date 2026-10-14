@@ -134,9 +134,27 @@ def build(cat, season):
         print(f"WARNING {cat}: total mismatch for {bad}")
     keep = sorted((f for f in fencers if f["total"] > 0), key=lambda f: -f["total"])
     short = [label(f["name"], 1) for f in keep]
-    out = [[f["id"], label(f["name"], 2 if short.count(s) > 1 else 1), f["club"], f["base"], f["pts"]]
+    out = [[f["id"], label(f["name"], 2 if short.count(s) > 1 else 1), f["club"], f["base"], f["pts"], label(f["name"], 99)]
            for f, s in zip(keep, short)]
     return {"ev": [[d, n] for _, d, n in events], "f": out}
+
+
+def save_snapshot(data, season, now):
+    """One real snapshot per day: [id, base, total]. Base points shrink over time,
+    so this is the only accurate record of what the site showed on each day."""
+    snaps = []
+    if os.path.exists("history.json"):
+        with open("history.json", encoding="utf-8") as fh:
+            snaps = json.load(fh).get("snaps", [])
+    today = now.strftime("%Y-%m-%d")
+    snap = {"d": today, "s": season}
+    for cat in CATS:
+        snap[cat.lower()] = [[f[0], f[3], f[3] + sum(sorted(f[4], reverse=True)[:4])]
+                             for f in data[cat.lower()]["f"]]
+    snaps = [x for x in snaps if x.get("d") != today] + [snap]
+    with open("history.json", "w", encoding="utf-8") as fh:
+        json.dump({"snaps": snaps}, fh, separators=(",", ":"))
+    print("history.json:", len(snaps), "snapshots")
 
 
 def main():
@@ -147,20 +165,20 @@ def main():
             time.sleep(3)  # be gentle with the server
         data[cat.lower()] = build(cat, season)
     data["season"] = season
+    now = dt.datetime.now(dt.timezone(dt.timedelta(hours=8)))
 
     old = None
     if os.path.exists("data.json"):
         with open("data.json", encoding="utf-8") as fh:
             old = json.load(fh)
     if old and {k: v for k, v in old.items() if k != "generated"} == data:
-        print("No change.")
-        return
-
-    sgt = dt.timezone(dt.timedelta(hours=8))
-    data["generated"] = dt.datetime.now(sgt).strftime("%Y-%m-%d %H:%M")
-    with open("data.json", "w", encoding="utf-8") as fh:
-        json.dump(data, fh, ensure_ascii=False, separators=(",", ":"))
-    print("Updated data.json:", {k: len(v["f"]) for k, v in data.items() if isinstance(v, dict)})
+        print("data.json: no change")
+    else:
+        data["generated"] = now.strftime("%Y-%m-%d %H:%M")
+        with open("data.json", "w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=False, separators=(",", ":"))
+        print("Updated data.json")
+    save_snapshot(data, season, now)
 
 
 if __name__ == "__main__":
