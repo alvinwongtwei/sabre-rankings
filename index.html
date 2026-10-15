@@ -14,7 +14,7 @@ input[type=search]{font:inherit;width:100%;box-sizing:border-box;padding:8px 10p
 .k{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}.k div{border:1px solid var(--bd);border-radius:12px;padding:10px 12px}.k b{display:block;font-size:18px}.k span{color:var(--mu);font-size:12px;display:block}
 .wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:600;font-size:12px}th[onclick]{cursor:pointer}
-tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(--dn)}.ax{font-size:11px;fill:var(--mu)}svg text{font-family:inherit}.d{opacity:.45;text-decoration:line-through}
+tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(--dn)}.ax{font-size:11px;fill:var(--mu)}svg text{font-family:inherit}.d{opacity:.5}
 .bd{font-size:11px;color:var(--mu);border:1px solid var(--bd);border-radius:6px;padding:0 5px}
 </style></head><body><main>
 <h1>Singapore women's sabre rankings</h1>
@@ -48,7 +48,7 @@ if(sel&&a){const{ev,f,L}=G,q=f.findIndex(x=>x[0]==sel);
 const info=Object.keys(C).map(c=>{const T=calc(c),m=D[c].f.findIndex(x=>x[0]==sel),l=T[T.length-1];return m<0?null:`${C[c]} #${l.r[m]} (${l.t[m].toLocaleString()} pts)`}).filter(Boolean).join(" · ");
 let dt="";
 if(q>=0){const x=f[q],pt=x[4],tc=pt.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).slice(0,4).map(a=>a[1]),lo=pt.length>=4?[...pt].sort((a,b)=>b-a)[3]:0,u=L.t.filter(v=>v>L.t[q]),d=L.t.filter(v=>v<L.t[q]);
-dt=`<p class="mu">#${L.r[q]} here · ${L.t[q].toLocaleString()} pts · ${u.length?Math.min(...u)-L.t[q]+" behind the next rank up":"leading"}${d.length?" · "+(L.t[q]-Math.max(...d))+" ahead of the next down":""} · a new result only adds points if it beats ${lo}</p><div class="wrap"><table><tr><th>Event<th>Date<th>Points<th></tr>`+ev.map((e,i)=>`<tr style="cursor:default"><td>${e[1]}<td>${fm(e[0])}<td class="${tc.includes(i)?"":"d"}">${pt[i]||"–"}<td>${tc.includes(i)&&pt[i]?"counts":pt[i]?"dropped":""}`).join("")+`<tr style="cursor:default"><td>Base points<td><td>${x[3]}<td>counts</tr></table></div>`}
+dt=`<p class="mu">#${L.r[q]} here · ${L.t[q].toLocaleString()} pts · ${u.length?Math.min(...u)-L.t[q]+" behind the next rank up":"leading"}${d.length?" · "+(L.t[q]-Math.max(...d))+" ahead of the next down":""} · a new result raises her total only if it scores more than her lowest counted score (${lo}).</p><p class="mu">Total = best 4 scores + base points. Scores outside her best 4 are shown faded.</p><div class="wrap"><table><tr><th>Event<th>Date<th>Score<th>In her total?</tr>`+ev.map((e,i)=>`<tr style="cursor:default"><td>${e[1]}<td>${fm(e[0])}<td class="${tc.includes(i)?"":"d"}">${pt[i]||"–"}<td>${tc.includes(i)&&pt[i]?"✓ Best 4":pt[i]?"Not counted":""}`).join("")+`<tr style="cursor:default"><td>Base points (carried over, shrinks daily)<td><td>${x[3]}<td>✓ Always added</tr></table></div>`}
 else dt=`<p class="mu">Not ranked in this level.</p>`;
 p=`<div class="card"><b>${nm(a)}</b> — ${info} <button onclick="pick(sel)" style="margin-left:8px">Clear</button><button onclick="navigator.clipboard.writeText(location.href)">Copy link</button>${dt}${hist(sel)}</div>`}
 $("sel").innerHTML=p}
