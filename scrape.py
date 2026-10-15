@@ -104,6 +104,7 @@ def parse(html):
             "id": int(re.search(r"/profiles/(\d+)", link["href"]).group(1)),
             "name": link.get_text(strip=True),
             "club": tds[2].get_text(strip=True),
+            "school": tds[3].get_text(strip=True),
             "base": num(tds[-2].get_text()),
             "total": num(tds[-1].get_text()),
             "pts": [points(tds[i].get_text(" ", strip=True)) for i, _, _ in events],
@@ -135,7 +136,7 @@ def build(cat, season):
         print(f"WARNING {cat}: total mismatch for {bad}")
     keep = sorted((f for f in fencers if f["total"] > 0), key=lambda f: -f["total"])
     short = [label(f["name"], 1) for f in keep]
-    out = [[f["id"], label(f["name"], 2 if short.count(s) > 1 else 1), f["club"], f["base"], f["pts"], label(f["name"], 99)]
+    out = [[f["id"], label(f["name"], 2 if short.count(s) > 1 else 1), f["club"], f["base"], f["pts"], label(f["name"], 99), f["school"]]
            for f, s in zip(keep, short)]
     return {"ev": [[d, n] for _, d, n in events], "f": out}
 
