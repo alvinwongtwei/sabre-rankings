@@ -29,7 +29,7 @@ tr{cursor:pointer}tr.on{background:var(--hi)}.up{color:var(--up)}.dn{color:var(-
 <div class="card"><h2>Club mix, top 10</h2><div id="club"></div></div></div>
 <p class="mu">Total = best 4 event scores + base points. Base points shrink over time, so "By event" applies today's base to earlier dates and is only an estimate. "By day" uses real daily snapshots and is accurate from the first day recorded. Dashed lines = no events yet this season (ranking is base points only).</p>
 </main><script>
-let D={cadet:{ev:[],f:[]},junior:{ev:[],f:[]},senior:{ev:[],f:[]}},H=[],cat="cadet",sel=null,mode="event",hideIn=false,sk=0,sd=1,G;
+let D={cadet:{ev:[],f:[]},junior:{ev:[],f:[]},senior:{ev:[],f:[]}},H=[],P={},cat="cadet",sel=null,mode="event",hideIn=false,sk=0,sd=1,G;
 const C={cadet:"Cadet",junior:"Junior",senior:"Senior"},K=["#0b6e4f","#2563eb","#d97706","#9333ea","#dc2626","#0891b2","#65a30d","#db2777","#64748b","#92400e","#ca8a04"];
 const $=id=>document.getElementById(id),fm=d=>new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short"}),nm=x=>x[5]||x[1],idle=x=>!x[4].some(v=>v>0);
 function calc(c){const{ev,f}=D[c],S=[];for(let k=0;k<=ev.length;k++){const t=f.map(x=>x[4].slice(0,k).sort((a,b)=>b-a).slice(0,4).reduce((a,b)=>a+b,0)+x[3]);S.push({t,r:t.map(v=>1+t.filter(u=>u>v).length)})}return S}
@@ -50,8 +50,10 @@ let dt="";
 if(q>=0){const x=f[q],pt=x[4],tc=pt.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).slice(0,4).map(a=>a[1]),lo=pt.length>=4?[...pt].sort((a,b)=>b-a)[3]:0,u=L.t.filter(v=>v>L.t[q]),d=L.t.filter(v=>v<L.t[q]);
 dt=`<p class="mu">#${L.r[q]} here · ${L.t[q].toLocaleString()} pts · ${u.length?Math.min(...u)-L.t[q]+" behind the next rank up":"leading"}${d.length?" · "+(L.t[q]-Math.max(...d))+" ahead of the next down":""} · a new result only adds points if it beats ${lo}</p><div class="wrap"><table><tr><th>Event<th>Date<th>Points<th></tr>`+ev.map((e,i)=>`<tr style="cursor:default"><td>${e[1]}<td>${fm(e[0])}<td class="${tc.includes(i)?"":"d"}">${pt[i]||"–"}<td>${tc.includes(i)&&pt[i]?"counts":pt[i]?"dropped":""}`).join("")+`<tr style="cursor:default"><td>Base points<td><td>${x[3]}<td>counts</tr></table></div>`}
 else dt=`<p class="mu">Not ranked in this level.</p>`;
-p=`<div class="card"><b>${nm(a)}</b> — ${info} <button onclick="pick(sel)" style="margin-left:8px">Clear</button><button onclick="navigator.clipboard.writeText(location.href)">Copy link</button>${dt}</div>`}
+p=`<div class="card"><b>${nm(a)}</b> — ${info} <button onclick="pick(sel)" style="margin-left:8px">Clear</button><button onclick="navigator.clipboard.writeText(location.href)">Copy link</button>${dt}${hist(sel)}</div>`}
 $("sel").innerHTML=p}
+function hist(id){const e=(P[id]||{}).e;if(!e||!e.length)return"";const s=[...e].sort((a,b)=>a[0]<b[0]?1:-1),pod=s.filter(x=>x[5]>0&&x[5]<=3).length,best=Math.min(...s.map(x=>x[5]).filter(v=>v>0));
+return`<h2 style="margin-top:14px">All competitions (${s.length})</h2><p class="mu">${pod} podium finish${pod==1?"":"es"} · best finish ${best}${s.some(x=>!x[2].startsWith("Singapore"))?" · includes overseas events":""}</p><div class="wrap" style="max-height:360px;overflow:auto"><table><tr><th>Date<th>Competition<th>Where<th>Category<th>Counts for<th>Place<th>Points</tr>`+s.map(x=>`<tr style="cursor:default"><td>${x[0]}<td>${x[1]}<td>${x[2]}<td>${x[3].replace("Individual ","")}<td>${x[4]}<td>${x[5]}<td>${x[6]}`).join("")+`</table></div>`}
 function kpi(){const{f,L}=G,od=f.map((x,i)=>i).sort((a,b)=>L.r[a]-L.r[b]||L.t[b]-L.t[a]),tp=od.slice(0,10),bs=tp.reduce((a,i)=>a+f[i][3],0),tt=tp.reduce((a,i)=>a+L.t[i],0);G.od=od;G.tp=tp;
 $("kpi").innerHTML=`<div><span>Leader</span><b>${nm(f[od[0]])}</b><span>${L.t[od[0]].toLocaleString()} pts${idle(f[od[0]])?" · no events this season":""}</span></div><div><span>Lead over #2</span><b>${(L.t[od[0]]-L.t[od[1]]).toLocaleString()}</b><span>points</span></div><div><span>Top 10 points from base</span><b>${Math.round(100*bs/tt)}%</b><span>not from this season's events</span></div>`}
 function tbl(){const{f,S,L,od}=G,q=$("q").value.toLowerCase(),gap=i=>{const a=L.t.filter(v=>v>L.t[i]);return a.length?Math.min(...a)-L.t[i]:0};
@@ -83,7 +85,7 @@ $("bars").innerHTML=b+`</svg><p class="mu">Grey = base points · green = best 4 
 const cm={};tp.forEach(i=>{const k=f[i][2]||"Unlisted";cm[k]=(cm[k]||0)+1});
 $("club").innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<button style="cursor:default">${k} · ${v}</button>`).join("")+`<p class="mu">Club is blank for many fencers on the federation site, so "Unlisted" is a data gap, not a club.</p>`}
 const J=u=>fetch(u+"?"+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null);
-Promise.all([J("data.json"),J("history.json")]).then(([j,h])=>{if(!j)throw 0;D=j;H=(h&&h.snaps)||[];
+Promise.all([J("data.json"),J("history.json"),J("profiles.json")]).then(([j,h,pr])=>{if(!j)throw 0;D=j;H=(h&&h.snaps)||[];P=(pr&&pr.p)||{};
 const m=location.hash.slice(1).split("-");if(C[m[0]])cat=m[0];if(+m[1])sel=+m[1];
 if(H.filter(s=>s.s==D.season).length>1)mode="day";
 $("asof").textContent="Season "+j.season+"–"+(j.season+1)+" · data as at "+j.generated+" SGT";render()}).catch(()=>{$("asof").textContent="Could not load data.json"});
