@@ -5,6 +5,7 @@ Runs daily on GitHub Actions. It fails loudly (non-zero exit) if the page layout
 changes or the numbers don't add up, rather than publishing wrong data.
 """
 import datetime as dt
+import hashlib
 import json
 import os
 import re
@@ -139,6 +140,69 @@ def build(cat, season):
     return {"ev": [[d, n] for _, d, n in events], "f": out}
 
 
+def profile_events(html):
+    """Competition history from a profile page. Only the results table is read:
+    the birth year, school and citizenship shown on the page are deliberately ignored."""
+    soup = BeautifulSoup(html, "html.parser")
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        heads = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])] if rows else []
+        if "Finalrank" not in heads or "Competition" not in heads:
+            continue
+        ix = {h: i for i, h in enumerate(heads) if h}
+        out = []
+        for r in rows[1:]:
+            tds = r.find_all("td")
+            if len(tds) != len(heads):
+                continue
+            g = lambda h: tds[ix[h]].get_text(strip=True)
+            out.append([g("Event Date"), g("Competition"), g("Location"), g("Category"),
+                        g("Points For"), num(g("Finalrank")), num(g("Points"))])
+        if not out:
+            raise ValueError("competition table had no readable rows")
+        return sorted(out, key=lambda e: e[0], reverse=True)
+    raise ValueError("no competition table on profile")
+
+
+def update_profiles(data, now):
+    """Cache each ranked fencer's full competition history in profiles.json.
+    A profile is re-fetched only when her results changed or the copy is over 7 days old.
+    Failures here never block the rankings update."""
+    old = {}
+    if os.path.exists("profiles.json"):
+        with open("profiles.json", encoding="utf-8") as fh:
+            old = json.load(fh).get("p", {})
+    sigs = {}
+    for cat in CATS:
+        for f in data[cat.lower()]["f"]:
+            sigs.setdefault(str(f[0]), []).append([cat, f[4]])
+    today = now.date()
+    new, fetched, failed = {}, 0, 0
+    for fid, sig in sigs.items():
+        s = hashlib.md5(json.dumps(sig).encode()).hexdigest()[:10]
+        cur = old.get(fid)
+        if cur and cur["s"] == s and (today - dt.date.fromisoformat(cur["t"])).days < 7:
+            new[fid] = cur
+            continue
+        try:
+            time.sleep(2)
+            r = requests.get(f"https://my.fencingsingapore.org.sg/profiles/{fid}", headers=HEADERS, timeout=30)
+            r.raise_for_status()
+            new[fid] = {"s": s, "t": today.isoformat(), "e": profile_events(r.text)}
+            fetched += 1
+        except Exception as e:  # keep the old copy rather than lose history
+            failed += 1
+            print(f"WARNING profile {fid}: {e}")
+            if cur:
+                new[fid] = cur
+    if failed:
+        print(f"::warning::{failed} of {len(sigs)} profile pages could not be read")
+    if not os.path.exists("profiles.json") or json.dumps({"p": new}, sort_keys=True) != json.dumps({"p": old}, sort_keys=True):
+        with open("profiles.json", "w", encoding="utf-8") as fh:
+            json.dump({"p": new}, fh, ensure_ascii=False, separators=(",", ":"))
+    print(f"profiles.json: {fetched} fetched, {failed} failed, {len(new)} total")
+
+
 def save_snapshot(data, season, now):
     """One real snapshot per day: [id, base, total]. Base points shrink over time,
     so this is the only accurate record of what the site showed on each day."""
@@ -179,6 +243,7 @@ def main():
             json.dump(data, fh, ensure_ascii=False, separators=(",", ":"))
         print("Updated data.json")
     save_snapshot(data, season, now)
+    update_profiles(data, now)
 
 
 if __name__ == "__main__":
